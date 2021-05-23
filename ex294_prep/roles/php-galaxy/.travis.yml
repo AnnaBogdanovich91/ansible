@@ -1,0 +1,87 @@
+---
+sudo: required
+dist: bionic
+
+language: python
+python:
+  - "2.7"
+
+services:
+  - docker
+
+cache:
+  directories:
+    - vendor/bundle
+    - $HOME/.cache/pip
+    - $HOME/.local
+    - roles
+
+jobs:
+  include:
+    - stage: Spec
+      name: Trusty
+      env: ANSIBLE_VERSION="2.8" ENVIRONMENT_NAME=trusty
+      script:
+        - travis_wait 50 bundle exec rake spec:$ENVIRONMENT_NAME:dev-static
+        - travis_wait 50 bundle exec rake spec:$ENVIRONMENT_NAME:prod-dynamic
+    - name: Xenial
+      env: ANSIBLE_VERSION="2.8" ENVIRONMENT_NAME=xenial
+      script:
+        - travis_wait 50 bundle exec rake spec:$ENVIRONMENT_NAME:dev-static
+        - travis_wait 50 bundle exec rake spec:$ENVIRONMENT_NAME:prod-dynamic
+    - name: Bionic
+      env: ANSIBLE_VERSION="2.8" ENVIRONMENT_NAME=bionic
+      script:
+        - travis_wait 50 bundle exec rake spec:$ENVIRONMENT_NAME:dev-static
+        - travis_wait 50 bundle exec rake spec:$ENVIRONMENT_NAME:prod-dynamic
+
+    - name: Ansible 2.5
+      env: ANSIBLE_VERSION="2.5" ENVIRONMENT_NAME=bionic
+      script:
+        - travis_wait 50 bundle exec rake spec:$ENVIRONMENT_NAME:dev-static
+        - travis_wait 50 bundle exec rake spec:$ENVIRONMENT_NAME:prod-dynamic
+
+    - name: Python 3
+      env: ANSIBLE_VERSION="2.8" ENVIRONMENT_NAME=bionic ANSIBLE_PYTHON_VERSION=3
+      python: 3.7
+      script:
+        - travis_wait 50 bundle exec rake spec:$ENVIRONMENT_NAME:dev-static
+        - travis_wait 50 bundle exec rake spec:$ENVIRONMENT_NAME:prod-dynamic
+
+    - stage: Idempotence
+      name: Trusty
+      env: ANSIBLE_VERSION="2.8" ENVIRONMENT_NAME=trusty
+      script: travis_wait 50 ./idempotence.sh
+    - name: Xenial
+      env: ANSIBLE_VERSION="2.8" ENVIRONMENT_NAME=xenial
+      script: travis_wait 50 ./idempotence.sh
+    - name: Bionic
+      env: ANSIBLE_VERSION="2.8" ENVIRONMENT_NAME=bionic
+      script: travis_wait 50 ./idempotence.sh
+
+    - name: Ansible 2.5
+      env: ANSIBLE_VERSION="2.5" ENVIRONMENT_NAME=bionic
+      script: travis_wait 50 ./idempotence.sh
+
+    - name: Python 3
+      env: ANSIBLE_VERSION="2.8" ENVIRONMENT_NAME=bionic ANSIBLE_PYTHON_VERSION=3
+      python: 3.7
+      script: travis_wait 50 ./idempotence.sh
+
+before_install:
+  - docker pull ubuntu:${ENVIRONMENT_NAME}
+
+  - travis_retry bundle install --deployment
+
+install:
+  - travis_retry pip install -U ansible==${ANSIBLE_VERSION}.*
+
+  - travis_retry ansible-galaxy install -r roles.yml
+
+  - travis_wait bundle exec rake environment:${ENVIRONMENT_NAME}:provision
+
+after_script:
+  - bundle exec rake environment:destroy
+
+notifications:
+    webhooks: https://galaxy.ansible.com/api/v1/notifications/

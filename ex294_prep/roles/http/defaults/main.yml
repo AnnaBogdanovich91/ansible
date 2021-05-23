@@ -1,0 +1,10 @@
+# vars file for http
+#
+# vars:
+  http_port: 80
+  http_folder: /var/www/html
+  httpd_conf: /etc/httpd/conf/httpd.conf
+  https_port: 443
+  httpd_conf_dir: /etc/httpd/conf.d/
+  https_conf: /etc/httpd/conf.d/ssl.conf
+

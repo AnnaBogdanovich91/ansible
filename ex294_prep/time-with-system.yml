@@ -1,0 +1,17 @@
+---
+- name: Set up time with RHEL system role
+  hosts: all
+  vars:
+    - timesync_ntp_servers:
+      - hostname: '192.168.0.108'
+        iburst: yes
+    - timezone: Europe/Warsaw
+  roles:
+  - rhel-system-roles.timesync
+  tasks:
+  - timezone:
+      name: "{{ timezone }}"
+  - command: "timedatectl"
+    register: stdout
+  - debug:
+      msg: "{{ stdout.stdout_lines }}"

@@ -1,0 +1,44 @@
+---
+- name: Prepare custom facts
+  hosts: all
+  gather_facts: no
+  vars:
+    remote_dir: /etc/ansible/facts.d
+    facts_file: service.fact
+  tasks:
+  - name: Prepare remote_dir
+    file:
+      state: directory
+      recurse: yes
+      path: "{{ remote_dir }}"
+  - name: Copy custom facts
+    copy:
+      src: "{{ facts_file }}"
+      dest: "{{ remote_dir }}"
+      force: yes
+#  - name: Re-read facts after adding custom fact
+#    ansible.builtin.setup:
+#      filter: ansible_local
+
+- name: Show custom variables
+  hosts: all
+  tasks:
+  - debug:
+      msg: "{{ ansible_local['service']['packages']['web_package'] }}"
+
+- name: Install custom packages
+  hosts: all
+  gather_facts: no
+  tasks: 
+  - name: install
+    yum:
+      name: "{{ item.value }}"
+    loop: "{{ ansible_local['service']['packages'] | dict2items }}"
+  - name: start
+    service:
+      name: "{{ item.value }}"
+      state: started
+      enabled: yes
+    loop: "{{ ansible_local['service']['services'] | dict2items }}"
+
+

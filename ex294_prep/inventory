@@ -1,0 +1,15 @@
+[control]
+127.0.0.1
+
+[client]
+rhce-client1
+
+#[web]
+#web[001:100]
+
+[lamp]
+rhce-client1
+
+[file]
+rhce-client2
+rhce-client3

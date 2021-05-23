@@ -1,0 +1,48 @@
+---
+- name: ssh config. No root
+  hosts: all
+  vars:
+    - sshd_config: /etc/ssh/sshd_config
+    - debug: false
+    - debug_fail: false
+  force_handlers: true
+  tasks:
+  - name: disable root login
+    lineinfile:
+      dest: "{{ sshd_config }}"
+      regexp: "^PermitRootLogin"
+      line: "PermitRootLogin no"
+    notify: restart_sshd
+  - name: enable X11
+    lineinfile:
+      dest: "{{ sshd_config }}"
+      regexp: "^X11Forwarding"
+      line: "X11Forwarding yes"
+    notify: restart_sshd
+  - name: debug
+    block:
+      - command: "grep X11Forwarding {{ sshd_config }}"
+        register: stdout
+      - debug:
+          msg: "{{ stdout.stdout_lines }}"
+      - command: "grep PermitRootLogin {{ sshd_config }}"
+        register: stdout
+      - debug:
+          msg: "{{ stdout.stdout_lines }}"
+    when: debug
+  - name: test_fail. Check handlers!
+    block:
+      - command: "echo test_fail. Check handlers! "
+        notify: restart_sshd 
+      - fail:
+          msg: "test_fail. Check handlers! "
+    when: debug_fail
+
+  - fetch:
+      src: "{{ sshd_config }}"
+      dest: /tmp
+  handlers:
+  - name: restart_sshd
+    service:
+      name: sshd
+      state: restarted

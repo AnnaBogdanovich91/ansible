@@ -1,0 +1,6 @@
+roles:
+# - name: rhtconsulting.haproxy
+- name: php-galaxy
+#  src: https://github.com/bbatsche/Ansible-PHP-Site-Role
+#  scm: git
+  src: bbatsche.php

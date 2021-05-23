@@ -1,0 +1,50 @@
+---
+- name: create report based on template
+  hosts: all
+  gather_facts: yes
+  tasks:
+  - debug:
+      msg: "Collecting facts from all hosts"
+
+- name: Generating report
+  gather_facts: no
+  hosts: localhost
+#  vars:
+#  - template_name: report_template.j2
+#  - debug: true
+  tasks:
+  - uri:
+      url: "http://rhce-client1:82/report.j2"
+      method: GET
+      dest: /tmp/report.j2
+  - lineinfile:
+      path: /tmp/report.j2
+      regexp: '.*fake_value$'
+      state: absent
+  - blockinfile:
+      path: /tmp/report.j2
+#      marker: "# {mark} ANSIBLE MANAGED BLOCK {{ item }}"
+      block: |
+          {% for item in groups.all %}
+          hostname={{ item }}
+          memory={{ hostvars[item].ansible_facts.memory_mb.real.total }}
+          bios_version={{  hostvars[item].ansible_facts.bios_version }}
+          {% if hostvars[item].ansible_facts.devices.sda.size is defined %}
+          sda_size={{ hostvars[item].ansible_facts.devices.sda.size }} 
+          {% else %}
+          sda_size=NONE
+          {% endif %}
+          {% if hostvars[item].ansible_facts.devices.sdb.size is defined %}
+          sdb_size={{ hostvars[item].ansible_facts.devices.sdb.size }}
+          {% else %}
+          sdb_size=NONE
+          {% endif %}
+
+          {% endfor %}
+#    when: hostvars[item].ansible_facts.memory_mb is defined
+#    with_items:  "{{ groups.all }}"
+#  - command: "cat /tmp/report.j2"
+#    register: stdout
+#  - debug:
+#      msg: |
+#        {{ stdout.stdout_lines }}

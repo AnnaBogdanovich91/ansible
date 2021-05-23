@@ -1,0 +1,14 @@
+---
+# tasks file for selinux  - name: check SElinux enforcing
+- name: install selinux packages
+  yum:
+    name: policycoreutils-python-utils
+    state: latest
+- name: Enable SELinux
+  selinux:
+    state: enforcing
+    policy: targeted
+  register: selinux
+- name: reboot if needed
+  reboot:
+  when: selinux.reboot_required

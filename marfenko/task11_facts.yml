@@ -1,0 +1,15 @@
+## TODO. Rewrite with template? NONE if not defined
+---
+- name: Gather system facts
+  hosts: all
+  tasks:
+  - name: output values
+    debug:
+      msg: " {{ item }}"
+    with_items:
+      - "{{ ansible_bios_version }}"
+      - "{{  ansible_memory_mb['real']['total'] }}"
+      - "{{ ansible_hostname }}"
+      - "{{  ansible_devices['sda']['size'] }}"
+      - "{{  ansible_devices['sdb']['size'] }}"
+    when:  item  is defined

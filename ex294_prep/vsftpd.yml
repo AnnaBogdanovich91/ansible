@@ -1,0 +1,67 @@
+---
+- name: set up vsftpd
+  hosts: file
+  force_handlers: yes
+  vars:
+  - anon_enable: yes
+  - local_enable: yes
+  - write_enable: yes
+  - anon_upload_enable: yes
+  - debug: yes
+  - ftp_directory: /var/ftp/pub
+  tasks:
+  - name: check and enable selinux
+    selinux:
+      policy: targeted
+      state: enforcing
+    register: se_result
+  - name: reboot if required
+    service:
+      reboot: yes
+    when: se_result.reboot_required
+  - name: install vsftpd
+    yum: 
+      name: vsftpd
+      state: present
+  - name: config service
+    service:
+      state: started
+      enabled: yes
+      name: vsftpd
+  - name: config from template
+    template:
+      src: vsftpd.j2
+      dest: /etc/vsftpd/vsftpd.conf
+      owner: root
+      mode: '0600'
+    notify: restart_ftp
+  - name: config SEbool
+    seboolean:
+      name: ftpd_anon_write
+      state: true
+      persistent: yes
+  - name: firewall
+    firewalld:
+      service: ftp
+      permanent: yes
+      state: enabled
+  - name: configure file dir
+    block:
+    - file:
+        path: "{{ ftp_directory }}"
+        state: directory
+        mode: '0777'
+    - sefcontext:
+        path: "{{ ftp_directory }}(/.*)?"
+        setype: "public_content_rw_t"
+        state: present
+      notify: restorecon
+
+
+  handlers:
+  - name: restorecon
+    command: "restorecon -ivR {{ ftp_directory }}"
+  - name: restart_ftp
+    service:
+      name: vsftpd
+      state: restarted

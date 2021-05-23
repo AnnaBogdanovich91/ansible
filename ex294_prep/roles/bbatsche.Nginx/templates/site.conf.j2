@@ -1,0 +1,115 @@
+# www to non-www redirect -- duplicate content is BAD:
+# https://github.com/h5bp/html5-boilerplate/blob/5370479476dceae7cc3ea105946536d6bc0ee468/.htaccess#L362
+# Choose between www and non-www, listen on the *wrong* one and redirect to
+# the right one -- http://wiki.nginx.org/Pitfalls#Server_Name
+server {
+  # don't forget to tell on which port this server listens
+  listen [::]:80;
+  listen 80;
+
+  # listen on the www host
+  server_name www.{{ domain }} {{ domain if use_ssl else '' }};
+
+  # and redirect to the non-www host (declared below)
+  # avoiding http://www -> https://www -> https:// chain (if applicable).
+  return 301 {{ 'https' if use_ssl else '$scheme' }}://{{ domain }}$request_uri;
+}
+
+{% if use_ssl %}
+server {
+  listen [::]:443 ssl http2;
+  listen 443 ssl http2;
+
+  # listen on the wrong host
+  server_name www.{{ domain }};
+
+  include conf.d/ssl.conf;
+
+  {% if use_letsencrypt %}
+  include h5bp/ssl/oscp_stapling.conf;
+  include h5bp/security/strict-transport-security.conf;
+
+  ssl_trusted_certificate /etc/letsencrypt/live/{{ domain }}/chain.pem;
+
+  ssl_certificate     /etc/letsencrypt/live/{{ domain }}/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/{{ domain }}/privkey.pem;
+  {% else %}
+  ssl_certificate     /etc/nginx/certs/{{ domain }}.crt;
+  ssl_certificate_key /etc/nginx/certs/default.key;
+  {% endif %}
+
+  # and redirect to the non-www host (declared below)
+  return 301 https://{{ domain }}$request_uri;
+}
+{% endif %}
+
+server {
+{% if use_ssl %}
+  listen [::]:443 ssl http2;
+  listen 443 ssl http2;
+
+  include conf.d/ssl.conf;
+
+  {% if use_letsencrypt %}
+  include h5bp/ssl/oscp_stapling.conf;
+
+  ssl_trusted_certificate /etc/letsencrypt/live/{{ domain }}/chain.pem;
+
+  ssl_certificate     /etc/letsencrypt/live/{{ domain }}/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/{{ domain }}/privkey.pem;
+  {% else %}
+  ssl_certificate     /etc/nginx/certs/{{ domain }}.crt;
+  ssl_certificate_key /etc/nginx/certs/default.key;
+  {% endif %}
+{% else %}
+  listen [::]:80;
+  listen 80;
+{% endif %}
+
+  # The host name to respond to
+  server_name {{ domain }};
+
+  # Path for static files
+  root {{ http_root }}/{{ domain }}/{{ public_directory }};
+
+  # Logs for local domain
+  access_log /var/log/nginx/{{ domain }}/access.log main if=$log_enabled;
+  error_log  /var/log/nginx/{{ domain }}/error.log;
+
+{% if env_name == "dev" %}
+  autoindex on;
+{% endif %}
+
+  client_max_body_size {{ max_upload_size }}m;
+
+  # Skip access log and not found logging for favicons and robots.txt
+  location ~ ^/(favicon.ico|robots.txt)/ {
+    allow         all;
+    access_log    off;
+    log_not_found off;
+  }
+
+  # Add CSP header
+  add_header Content-Security-Policy "{{content_security_policy | to_csp_header }}" always;
+
+  index index.html index.htm;
+
+{% if passenger_app %}
+  passenger_enabled on;
+
+  {% if env_name == "dev" %}
+  passenger_app_env development;
+  {% else %}
+  passenger_app_env production;
+  {% endif %}
+
+  passenger_app_root {{ http_root }}/{{ domain }};
+{% endif %}
+
+  # Include the basic h5bp config set
+  include conf.d/h5bp.conf;
+
+{% for file in nginx_configs | default([]) %}
+  include conf.d/{{ file }};
+{% endfor %}
+}

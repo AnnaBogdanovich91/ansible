@@ -1,0 +1,9 @@
+users:
+- name: lori
+  role: manager
+- name: lisa
+  role: devops
+- name: alex
+  role: manager
+- name: john
+  role: manager

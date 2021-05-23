@@ -1,0 +1,11 @@
+---
+- name: file stat manipulation
+  hosts: localhost
+  vars:
+  - filename: /etc/hosts
+  tasks:
+  - stat:
+      path: "{{ filename }}"
+    register: st
+  - debug: 
+      msg: "Permissions of {{ filename }} is {{ st.stat.mode }}"

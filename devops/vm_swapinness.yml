@@ -1,0 +1,20 @@
+---
+- name: Conditionally set vm.swappiness
+  hosts: all
+  become: true
+  vars:
+  - mem_threshold: 1500
+  - swappiness: 10
+  tasks:
+  - fail:
+      msg: "Server {{ansible_memtotal_mb}} memory less than {{ mem_threshold }}MB"
+    when: ansible_memtotal_mb < mem_threshold
+  - sysctl:
+      name: 'vm.swappiness'
+      state: present
+      value: "{{ swappiness }}"
+      reload: yes
+  - shell: " sysctl -a | grep swappiness "
+    register: out
+  - debug:
+      var: out.stdout_lines

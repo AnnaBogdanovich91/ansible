@@ -1,0 +1,11 @@
+---
+- name: Archive .gz
+  hosts: localhost
+  tasks:
+  - name: Create archive
+    archive:
+      dest: /home/automation/marfenko/passwd.tar.gz
+      path: /etc/[a-f]*
+      format: gz
+      force_archive: true
+...

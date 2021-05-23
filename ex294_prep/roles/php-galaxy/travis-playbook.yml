@@ -1,0 +1,25 @@
+---
+- hosts: all
+
+  vars_files:
+    - defaults/main.yml
+    - vars/main.yml
+
+  vars:
+    php_version: "7.2.20"
+    pecl_extensions:
+      - name: yaml
+        version: 2.0.4
+    composer_packages:
+      - name: phpunit/phpunit
+        version: ^6.4
+
+  roles:
+    - role: bbatsche.Nginx
+      nginx_configs: [ "php.conf" ]
+
+  tasks:
+    - import_tasks: tasks/main.yml
+
+  handlers:
+    - import_tasks: handlers/main.yml

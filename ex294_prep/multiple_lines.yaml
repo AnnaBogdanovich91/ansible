@@ -1,0 +1,21 @@
+---
+- name: multiline test
+  hosts: localhost
+  connection: local
+  vars:
+    my_pattern: |
+      With his own sword,
+      Which he did wave against my throat, I have ta’en
+      His head from him.
+  tasks:
+    - debug:
+        var: my_pattern
+    - name: insert/update eth0 configuration stanza in /etc/network/interfaces
+        (it might be better to copy files into /etc/network/interfaces.d/)
+      blockinfile:
+       path: /home/ansible/ex294/interfaces
+       create: true
+       block: |
+         iface eth0 inet static
+            address 192.0.2.23
+            netmask 255.255.255.0

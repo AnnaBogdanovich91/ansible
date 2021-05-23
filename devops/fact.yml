@@ -1,0 +1,19 @@
+---
+- name: set custom fact
+  hosts:  web
+  gather_facts: no
+  become: true
+  tasks:
+  - file:
+      path: /etc/ansible/facts.d
+      state: directory
+  - copy:
+      src: /home/devops/custom.fact
+      dest: /etc/ansible/facts.d
+
+- name:
+  hosts:  web
+  gather_facts: yes
+  tasks:
+  - debug:
+      var: ansible_local.custom.sample_exam  

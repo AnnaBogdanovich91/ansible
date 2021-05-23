@@ -1,0 +1,11 @@
+---
+- name: set SELINUX properties
+  vars:
+  - selinux_booleans:
+    - { name: 'httpd_can_network_connect ', state: 'on' }
+    - { name: 'ssh_sysadm_login', state: 'on', persistent: 'yes' }
+      
+  roles:
+    - role: rhel-system-roles.selinux
+        become: true
+        

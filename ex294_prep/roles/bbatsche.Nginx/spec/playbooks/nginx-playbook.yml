@@ -1,0 +1,48 @@
+---
+- hosts: all
+
+  vars_files:
+    - ../../defaults/main.yml
+    - ../../vars/main.yml
+
+  pre_tasks:
+    - name: Clear index.html for test
+      file:
+        name: "{{ http_root }}/{{ domain }}/{{ public_directory }}/index.html"
+        state: absent
+      when: domain | default('') != ''
+
+    - name: Create Nginx Conf.d Directory
+      file:
+        name: /etc/nginx/conf.d
+        state: directory
+      become: yes
+
+    - name: Create Extra Config
+      copy:
+        content: "add_header X-Spec-Config spec-config-exists;"
+        dest: /etc/nginx/conf.d/external-config.conf
+      become: yes
+
+  tasks:
+    - import_tasks: ../../tasks/main.yml
+
+  post_tasks:
+    - name: Create Test Assets
+      file:
+        name: "{{ http_root }}/{{ domain }}/{{ public_directory }}/{{ item }}"
+        state: touch
+      when: domain | default('') != ''
+      with_items:
+        - test.js
+        - test.css
+        - test.jpg
+
+    # Ansible's service module doesn't play well with Docker, so for testing just manually restart
+    - name: Force Nginx Restart
+      command: service nginx restart warn=no
+      become: yes
+      when: ansible_connection | default('smart') == 'docker'
+
+  handlers:
+    - import_tasks: ../../handlers/main.yml

@@ -1,0 +1,35 @@
+---
+# tasks file for firewall
+- name: Install firewall
+  yum:
+    name: firewalld
+    state: present
+- name: Start firewalld
+  service:
+    name: firewalld
+    state: started
+    enabled: yes
+- name: open TCP port
+  firewalld:
+    port: "{{ item }}/tcp"
+    immediate: yes
+    permanent: yes
+    state: enabled
+  with_items: "{{ tcp_ports }}"
+  when:  tcp_ports is defined
+- name: open UDP port
+  firewalld:
+    port: "{{ item }}/udp"
+    immediate: yes
+    permanent: yes
+    state: enabled
+  with_items: "{{ udp_ports }}"
+  when:  udp_ports is defined
+- name: Allow servivce
+  firewalld:
+    service: "{{ item }}"
+    immediate: yes
+    permanent: yes
+    state: enabled
+  with_items: "{{  services  }}"
+  when:  services is defined

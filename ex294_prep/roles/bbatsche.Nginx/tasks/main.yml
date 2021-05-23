@@ -1,0 +1,172 @@
+---
+- name: Add Phusion Passenger APT Key
+  apt_key: keyserver=keyserver.ubuntu.com id=561F9B9CAC40B2F7 state=present
+  become: yes
+
+- name: Add Phusion Passenger APT Repository
+  apt_repository:
+    repo: deb https://oss-binaries.phusionpassenger.com/apt/passenger {{ ansible_distribution_release }} main
+    state: present
+  become: yes
+
+- name: Install
+  apt: name={{ passenger_apt_packages[ansible_distribution_release] }} state=present
+  become: yes
+
+- name: Enable Passenger Module
+  file:
+    src: /usr/share/nginx/modules-available/mod-http-passenger.load
+    dest: /etc/nginx/modules-enabled/50-mod-http-passenger.conf
+    state: link
+  become: yes
+  when: ansible_distribution_release == "bionic"
+
+- name: Create Config Directories
+  file: path=/etc/nginx/{{ item }} state=directory
+  become: yes
+  loop:
+    - conf.d
+    - certs
+    - h5bp
+    - h5bp/internet_explorer
+    - h5bp/location
+    - h5bp/media_types
+    - h5bp/security
+    - h5bp/ssl
+    - h5bp/web_performance
+
+- name: Copy Nginx Coniguration
+  template: src=nginx.conf.j2 dest=/etc/nginx/nginx.conf
+  become: yes
+  notify: Restart Nginx
+
+# Make sure we overwrite the default Nginx mime.types with H5BP version
+- name: Copy HTML5 mime.types
+  get_url:
+    url:  https://raw.githubusercontent.com/h5bp/server-configs-nginx/{{ h5bp_commit }}/mime.types
+    dest: /etc/nginx/h5bp/mime.types
+  become: yes
+  notify: Restart Nginx
+
+- name: Remove Default Nginx mime.types
+  file:
+    name:  /etc/nginx/mime.types
+    state: absent
+  become: yes
+  notify: Restart Nginx
+
+- name: Copy HTML5 Boilerplate Files
+  get_url:
+    url:  https://raw.githubusercontent.com/h5bp/server-configs-nginx/{{ h5bp_commit }}/h5bp/{{ item }}
+    dest: /etc/nginx/h5bp/{{ item }}
+  become: yes
+  notify: Restart Nginx
+  loop:
+    - internet_explorer/x-ua-compatible.conf
+    - location/security_file_access.conf
+    - media_types/character_encodings.conf
+    - security/content-security-policy.conf
+    - security/referrer-policy.conf
+    - security/server_software_information.conf
+    - security/strict-transport-security.conf
+    - security/x-content-type-options.conf
+    - security/x-frame-options.conf
+    - security/x-xss-protection.conf
+    - ssl/certificate_files.conf
+    - ssl/ocsp_stapling.conf
+    - ssl/policy_modern.conf
+    - ssl/policy_intermediate.conf
+    - ssl/ssl_engine.conf
+    - web_performance/cache_expiration.conf
+    - web_performance/cache-file-descriptors.conf
+    - web_performance/compression.conf
+
+- name: Copy Custom Configs
+  copy: src={{ item }} dest=/etc/nginx/conf.d/{{ item }}
+  become: yes
+  notify: Restart Nginx
+  loop:
+    - h5bp.conf
+    - media_types.conf
+    - ssl_policy_intermediate.conf
+    - svgz-compression.conf
+
+- name: Create Default Site
+  template: src=site.default.conf.j2 dest=/etc/nginx/sites-available/default
+  become: yes
+  notify: Restart Nginx
+
+- name: Enable Default Site
+  file:
+    src:   /etc/nginx/sites-available/default
+    dest:  /etc/nginx/sites-enabled/00-default
+    state: link
+  become: yes
+  notify: Restart Nginx
+
+- name: Remove Previous Default Site Link
+  file: name=/etc/nginx/sites-enabled/default state=absent
+  become: yes
+  notify: Restart Nginx
+
+- name: Set Permissions for Site Config Directories
+  file:
+    path:  /etc/nginx/{{ item }}
+    state: directory
+    owner: root
+    group: web-admin
+    mode:  02770
+  become: yes
+  loop:
+    - sites-available
+    - sites-enabled
+    - conf.d
+
+- name: Create ACL for Site Config Directories
+  acl:
+    name:        /etc/nginx/{{ item }}
+    etype:       group
+    entity:      web-admin
+    permissions: rwx
+    state:       present
+  become: yes
+  loop:
+    - sites-available
+    - sites-enabled
+
+- name: Create Log Directory
+  file:
+    path:  /var/log/nginx
+    state: directory
+    owner: www-data
+    group: www-data
+    mode:  0750
+  become: yes
+
+- name: Create HTTP Root
+  file: path={{ http_root }} state=directory mode=02775
+  become: yes
+
+# If HTTP root is an NFS mount we need to skip various ACL and permission related tasks
+# Disable warnings since Ansible's stat module doesn't return any info about the FS type
+- name: Check HTTP Root Filesystem
+  command: stat -f -c %T {{ http_root }} warn=no
+  register: http_root_fs
+  changed_when: no
+
+- name: Configure ACLs For Http Root
+  include_tasks: http_root_acl.yml
+  when:
+    - http_root_fs.stdout != "nfs"
+    - http_root_fs.stdout != "vmhgfs"
+    - http_root_fs.stdout != "vboxsf"
+    - http_root_fs.stdout != "prl_fs"
+    - http_root_fs.stdout != "fuseblk"
+
+- name: Configure Server SSL
+  include_tasks: ssl.yml
+  when: use_ssl
+
+- name: Create a Site
+  include_tasks: site.yml
+  when: domain is defined

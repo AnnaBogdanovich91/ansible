@@ -1,0 +1,18 @@
+{% for config in phpenv_config_options %}
+configure_option {{ config }}
+{% endfor %}
+
+{% for removed_config in phpenv_config_options_removed %}
+configure_option -D {{ removed_config }}
+{% endfor %}
+
+install_package "https://secure.php.net/distributions/php-{{ php_version }}.tar.bz2"
+install_composer
+
+{% for extension in (pecl_extensions | default([])) %}
+install_extension {{ extension.name }} {{ extension.version }}
+{% endfor %}
+
+{% if env_name == "dev" %}
+install_xdebug {{ xdebug_version }}
+{% endif %}

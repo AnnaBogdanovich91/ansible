@@ -1,0 +1,23 @@
+- name: Install NFS packages
+  yum:
+    name:
+    - nfs-utils
+
+- name: Start NFS daemon
+  service:
+    name: "{{item}}"
+    enabled: yes
+    state: started
+  with_items:
+  - nfs-server
+  - rpcbind
+- firewalld:
+    service: "{{ item }}"
+    state: enabled
+    permanent: yes
+    immediate: yes
+  with_items:
+  - nfs
+  - nfs3
+  - rpc-bind
+  - mountd

@@ -1,0 +1,32 @@
+---
+- name: Create users as requested by file
+  hosts: all
+  become: true
+  gather_facts: no
+  vars_files:
+  - secret.yml
+  - users_input.yml
+  tasks:
+  - debug:
+      var:  mypassword
+  - debug: 
+      msg: "{{ mypassword | string | password_hash('sha512','mysalt') }}"
+  - group:
+      name:  "{{ item.role }}"
+    with_items:
+     - "{{ users }}"
+    when: >
+     (inventory_hostname in groups['frontend'] and item.role=='manager')
+     or
+     (inventory_hostname in groups['backend'] and item.role=='devops')  
+  - user:
+      name: "{{ item.name }}"
+      groups: "{{ item.role }}"
+      password: "{{ mypassword | string |  password_hash('sha512', 'mysalt') }}"
+      shell: /bin/bash
+    with_items:
+    - "{{ users }}"
+    when: >
+      (inventory_hostname in groups['frontend'] and item.role=='manager')
+      or
+      (inventory_hostname in groups['backend'] and item.role=='devops')

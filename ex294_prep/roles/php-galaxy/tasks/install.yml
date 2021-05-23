@@ -1,0 +1,127 @@
+---
+- name: Install Build Dependencies
+  apt:
+    name: "{{ php_apt_dependencies }}"
+    state: present
+  become: yes
+
+- name: Copy Phpenv Definition
+  template: src=phpenv_definition.j2 dest=/tmp/{{ php_version }}
+
+- name: Install PHP {{ php_version }}
+  phpenv:
+    arguments: /tmp/{{ php_version }}
+    php_version: "{{ php_version }}"
+    phpenv_root: "{{ phpenv_root }}"
+  notify: Rehash Phpenv
+  register: install_php_result
+
+- name: Enable ZendOpcache
+  lineinfile:
+    dest: "{{ phpenv_root }}/versions/{{ php_version }}/etc/conf.d/opcache.ini"
+    line: "zend_extension=opcache.so"
+    create: yes
+
+- name: Remove Default Xdebug Config
+  file:
+    name: "{{ phpenv_root }}/versions/{{ php_version }}/etc/conf.d/xdebug.ini"
+    state: absent
+
+- name: Copy FPM Init Script
+  template: src=fpm-init.sh.j2 dest=/etc/init.d/php{{ php_version }}-fpm mode=0755
+  become: yes
+  notify: Update FPM RC
+
+- name: Copy FPM Upstart Config
+  template: src=fpm-upstart.conf.j2 dest=/etc/init/php{{ php_version }}-fpm.conf
+  become: yes
+  when: ansible_distribution_release == "trusty"
+
+- name: Copy FPM Systemd Config
+  template: src=fpm-systemd.conf.j2 dest=/lib/systemd/system/php{{ php_version }}-fpm.service
+  become: yes
+  when: ansible_distribution_release != "trusty"
+  notify: Enable FPM Systemd Service
+
+- name: Delete Default FPM Config
+  file: name={{ phpenv_root }}/versions/{{ php_version }}/etc/php-fpm.conf.default state=absent
+  notify: Restart FPM
+
+- name: Copy php.ini
+  template: src=php.ini.j2 dest={{ phpenv_root }}/versions/{{ php_version }}/etc/php.ini
+  notify: Restart FPM
+
+- name: Copy FPM Config
+  template: src=fpm.conf.j2 dest={{ phpenv_root }}/versions/{{ php_version }}/etc/php-fpm.conf
+  notify: Restart FPM
+
+- name: Create Pool Directory
+  file: name={{ phpenv_root }}/versions/{{ php_version }}/etc/pool.d state=directory
+
+- name: Copy FPM Pool Config
+  template: src=fpm-pool.conf.j2 dest={{ phpenv_root }}/versions/{{ php_version }}/etc/pool.d/{{ domain }}.conf
+  when: domain is defined
+  notify: Restart FPM
+
+- name: Create Session Directory
+  file:
+    name: "{{ php_session_path }}"
+    state: directory
+    mode: 02770
+    owner: www-data
+    group: www-data
+  become: yes
+  when: php_session_save_handler | default("files") == "files"
+
+- name: Create Log Directory
+  file:
+    name: "{{ log_dir }}"
+    state: directory
+    mode: 02775
+    owner: www-data
+    group: www-data
+  become: yes
+
+- name: Check for Error Log
+  stat: path={{ log_dir }}/error.log
+  register: error_log_stat
+
+- name: Set Error Log Permissions
+  file:
+    name: "{{ log_dir }}/error.log"
+    state: touch
+    mode: 0664
+    owner: www-data
+    group: web-admin
+  become: yes
+  when: not error_log_stat.stat.exists
+
+- name: Check for FPM Error Log
+  stat: path={{ log_dir }}/fpm-error.log
+  register: fpm_error_log_stat
+
+- name: Set FPM Error Log Permissions
+  file:
+    name: "{{ log_dir }}/fpm-error.log"
+    state: touch
+    mode: 0664
+    owner: www-data
+    group: web-admin
+  become: yes
+  when: not fpm_error_log_stat.stat.exists
+
+- block:
+  - name: Check for Domain Slow Log
+    stat: path={{ log_dir }}/{{ domain }}-slow.log
+    register: slow_log_stat
+
+  - name: Set Domain Slow Log Permissions
+    file:
+      name: "{{ log_dir }}/{{ domain }}-slow.log"
+      state: touch
+      mode: 0664
+      owner: www-data
+      group: web-admin
+    become: yes
+    when: not slow_log_stat.stat.exists
+  when: domain is defined

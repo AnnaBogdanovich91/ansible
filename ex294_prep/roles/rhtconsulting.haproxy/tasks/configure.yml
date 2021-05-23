@@ -1,0 +1,48 @@
+---
+- name: HAProxy | Configure | Update haproxy.cfg
+  template:
+    src: templates/haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+    owner: haproxy
+    group: haproxy
+  register: haproxy_cfg_result
+  tags:
+    - haproxy-configure
+
+- name: HAProxy | Configure | Update redirect_http_to_https.map
+  template:
+    src: templates/redirect_http_to_https.map.j2
+    dest: /etc/haproxy/redirect_http_to_https.map
+    owner: haproxy
+    group: haproxy
+  register: redirect_http_to_https_result
+  tags:
+    - haproxy-configure
+
+- name: HAProxy | Configure | Update expose_http.map
+  template:
+    src: templates/expose_http.map.j2
+    dest: /etc/haproxy/expose_http.map
+    owner: haproxy
+    group: haproxy
+  register: expose_http_result
+  tags:
+    - haproxy-configure
+
+- name: HAProxy | Configure | Update expose_https.map
+  template:
+    src: templates/expose_https.map.j2
+    dest: /etc/haproxy/expose_https.map
+    owner: haproxy
+    group: haproxy
+  register: expose_https_result
+  tags:
+    - haproxy-configure
+
+- name: HAProxy | Configure | Restart Service
+  service:
+    name: haproxy
+    state: restarted
+  when: haproxy_cfg_result.changed or redirect_http_to_https_result.changed or expose_http_result.changed or expose_https_result.changed
+  tags:
+    - haproxy-configure

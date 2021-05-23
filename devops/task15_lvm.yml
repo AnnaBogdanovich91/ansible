@@ -1,0 +1,49 @@
+---
+- name: Create lv in existing vg
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+  - vgname: vgdata
+  - lvname: lv
+  - lvsize_big_gb: '1'
+  - lvsize_small_gb: '0.1'
+  tasks:
+  - name: check vg existance
+    fail:
+      msg: "VG {{ vgname }} doesn not seem to exist. VGList {{ ansible_lvm.vgs }}"
+    when: vgname not in ansible_lvm.vgs
+  - name: Create big LV if space allows
+    lvol:
+      lv: "{{ lvname }}"
+      size: "{{ lvsize_big_gb }}g"
+      vg: "{{ vgname }}"
+      force: yes
+    when: lvsize_big_gb < ansible_lvm.vgs[vgname].free_g
+  - name: Create small LV if not enough size
+    block:
+    - lvol: 
+        lv: "{{ lvname }}"
+        size: "{{ lvsize_small_gb }}g"
+        vg: "{{ vgname }}"
+        force: yes
+    - debug: 
+        msg: "VG {{vgname}} has only {{ ansible_lvm.vgs[vgname].free_g }}g free. Creating LV of size {{ lvsize_small_gb }}g"
+    when: lvsize_big_gb > ansible_lvm.vgs[vgname].free_g
+    rescue:
+    - debug:
+        msg: "Not Enough space in VG for that!!!"
+  - name: Create filesystem
+    filesystem:
+      dev: "/dev/{{ vgname }}/{{ lvname }}"
+      fstype: xfs
+  - name:
+    file:
+      path: /mnt/data
+      state: directory
+  - name: Create fstab entry
+    mount:
+      src: "/dev/{{ vgname }}/{{ lvname }}"
+      fstype: xfs
+      path: /mnt/data
+      state: mounted

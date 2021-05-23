@@ -1,0 +1,16 @@
+---
+- name: test service with loop
+  hosts: localhost
+  tasks:
+  - service:
+      name: "{{ item }}"
+      state: started
+    loop:
+    - "httpd "
+    - vsftpd
+    - crond
+    - chronyd
+#    - "{{ ansible_facts['ansible_local']['services']['services']['web_service']}} "
+#    - "{{ ansible_facts['ansible_local']['services']['services']['ftp_service']}} "
+#    - "{{ ansible_facts['ansible_local']['services']['services']['firewall_service']}} "
+

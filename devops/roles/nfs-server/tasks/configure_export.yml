@@ -1,0 +1,8 @@
+- name: Configure exports via template
+  lineinfile:
+    path: /etc/exports
+    line:  "{{ item.path }} {{ item.servers | join(' ')}}"
+    regex: "^{{ item.path }}"
+  with_items: "{{ exports }}"
+  when: exports is defined
+  notify: restart_nfs_server

@@ -1,0 +1,13 @@
+---
+- name: test vars
+  hosts: localhost
+  tasks:
+  - debug:
+      msg: |
+       "{{ inventory_hostname }}"
+
+       "{{group_names }}"
+
+       "{{ groups }}"
+
+       "{{  hostvars['localhost']['ansible_facts']['default_ipv4']['address'] }}"

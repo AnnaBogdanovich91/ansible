@@ -1,0 +1,54 @@
+---
+- name: Configure second disk
+  hosts: all
+  vars:
+  - diskname: sdc
+  - vgname: ansvg
+  - lvname: anslv
+  - mount: /ansible
+  tasks:
+  - fail:
+      msg:  "No {{ diskname }} on {{ ansible_host }}"
+    when:  diskname not in ansible_devices
+  - parted:
+      device: "/dev/{{ diskname }}"
+      number: 1
+      state: present
+      flags: [ lvm ]
+  - gather_facts:
+  - lvg:
+      vg: "{{ vgname }}"
+      pvs: "/dev/{{ diskname }}1"
+  - gather_facts:
+#  - debug:
+#      msg: "{{ ansible_lvm }}"
+  - lvol:
+      vg: "{{ vgname }}"
+      size: 2G
+      lv: "{{ lvname }}_big"
+    when: ansible_lvm['vgs'][vgname]['free_g'] >= "2"
+  - set_fact:
+      my_lvname: "{{ lvname }}_big"
+    when: ansible_lvm['vgs'][vgname]['free_g'] >= "2"
+  - lvol:
+        vg: "{{ vgname }}"
+        size: 200M
+        lv: "{{ lvname }}_small"
+    when: ansible_lvm['vgs'][vgname]['free_g'] < "2"
+  - set_fact:
+       my_lvname: "{{ lvname }}_small"
+    when: ansible_lvm['vgs'][vgname]['free_g'] < "2"
+#  - debug:
+#      msg: "Available LV on  {{ ansible_host }}. {{ ansible_lvm['lvs'] }}"
+  - filesystem:
+      fstype: xfs
+      dev: "/dev/{{ vgname }}/{{ my_lvname }}"
+  - file:
+      path: "{{ mount }}"
+      state: directory
+  - mount:
+      path: "{{ mount }}"
+      state: mounted
+      fstype: xfs
+      src:  "/dev/{{ vgname }}/{{ my_lvname }}"
+...

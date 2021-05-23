@@ -1,0 +1,28 @@
+---
+- name: gather_facts
+  gather_facts: yes
+  hosts: all
+  
+- name: test
+  gather_facts: no
+  hosts: control
+  tasks:
+  - debug:
+      msg: "{{ hostvars[item].ansible_facts }}"
+    with_items: "{{ groups.all }}"
+  - name: Add IP address of all hosts to all hosts
+    lineinfile:
+      dest: /tmp/hosts
+      regexp: '.*{{ item }}$'
+      line: "{{ hostvars[item].ansible_facts.default_ipv4.address }} {{item}}"
+      state: present
+    when: hostvars[item].ansible_facts.default_ipv4 is defined
+    with_items: "{{ groups.all }}"
+  - name: Add IP viafor loop
+    blockinfile:
+      path: /tmp/hosts.block
+      marker: "# {mark} ANSIBLE MANAGED BLOCK "
+      block: |
+        {% for item in groups['all'] %}
+        {{ hostvars[item].ansible_facts.default_ipv4.address }} {{item}}
+        {% endfor %}

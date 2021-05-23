@@ -1,0 +1,65 @@
+---
+- name: configure webserver with correct content
+  hosts: 
+  - dev
+  - test
+  become: yes
+  gather_facts: yes
+  vars:
+  - content_file: /home/httpd_content.html
+  - index_file: "/var/www/html/{{ inventory_hostname }}/index.html" 
+  pre_tasks:
+  - name: install httpd
+    yum:
+      name: httpd
+      state: present
+  - service:
+      name: httpd
+      enabled: yes
+      state: started
+  - firewalld:
+      service: http
+      state: enabled
+      permanent: yes
+      immediate: yes
+  - name: Provide correct content
+    copy:
+      content: "Welcome to TEST server. {{ inventory_hostname }}"
+      dest: "{{ content_file }}"
+    when: "'test' in group_names"
+  - name: Provide correct content
+    copy: 
+      content: "Welcome to DEV  server. {{ inventory_hostname }}"
+      dest: "{{ content_file }}"
+      mode: '0644'
+    when: "'dev' in group_names"
+  - name: Remove file if exists
+    file:
+      path: "{{ index_file }}"
+      state: absent
+  - name: Create symbolic link
+    file:
+      src: "{{content_file }}"
+      dest: "{{ index_file }}"
+      state: link
+  roles:
+  - role: rhel-system-roles.selinux
+    become: true
+    vars:
+    - selinux_booleans:
+      - { name: 'httpd_can_network_connect', state: 'on', persistent: 'yes' }
+      - { name: 'httpd_enable_homedirs', state: 'on', persistent: 'yes' }
+    - selinux_fcontexts:
+      - { target: '{{ content_file }}', setype: 'httpd_sys_content_t',  state: 'present' }
+  post_tasks:
+  - name: Test connection
+    connection: local
+    uri:
+      url: "http://{{ inventory_hostname }}"
+      return_content: yes
+    register: output
+    failed_when: "'Welcome' not in output.content"
+  - debug:
+      var: output.content
+...
+

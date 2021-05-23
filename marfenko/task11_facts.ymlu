@@ -1,0 +1,13 @@
+---
+- name: Gather system facts
+  hosts: localhost
+  tasks:
+  - name: output values
+    debug:
+      msg: 
+      - "{{ ansible_bios_version }}"
+      - "{{ ansible_memory_mb['real']['total'] }}"
+      - "{{ ansible_hostname' }}"
+      - "{{  ansible_devices['sda']['size'] }}"
+      - "{{  ansible_devices['sdb']['size'] }}"
+

@@ -1,0 +1,10 @@
+- name: Configure exports via template
+  lineinfile:
+    path: /etc/exports
+    line: > 
+      item.path item
+      {% for server in item.servers %}
+        server.server (server.access)
+      {% endfor %} 
+  with_items: "{{ exports }}"
+  when: exports is defined

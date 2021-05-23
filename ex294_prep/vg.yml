@@ -1,0 +1,16 @@
+---
+- name: Storage management
+  hosts: all
+  vars:
+  - lvname: datalv
+  - vgname: datavg
+  - lvsize: 100M
+  tasks:
+  - fail:
+      msg: "{{ vgname }} is not present on {{ ansible_hostname }}"
+    when: 
+  - lvol:
+    vg: "{{ vgname }}"
+    ls: "{{ lvname }}"
+    size: "{{ lvsize }}"
+    

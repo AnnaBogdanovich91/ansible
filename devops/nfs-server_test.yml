@@ -1,0 +1,43 @@
+---
+- name: Test playbook for NFS role
+  hosts: file
+  become: true
+  gather_facts: yes
+  pre_tasks:
+  - name: Create directory
+    file:
+      path: /nfsshare
+      state: directory
+  roles:
+  - role: nfs-server
+  vars:
+  - exports:
+    - path: /nfsshare
+      servers:
+      - '*(ro)'
+      - '127.0.0.1(rw)'
+
+#  post_tasks:
+#  - name: Test showmounts
+#    connection: local
+#    block:
+#    - command: "showmount -e"
+#      register: out
+#    - debug:
+#        var: out.stdout_lines
+
+- name: Test from local
+  hosts: localhost
+  become: yes
+  tasks:
+  - yum:
+      name: nfs-utils
+      state: present 
+  - command: "showmount -e {{ hostvars[item].ansible_default_ipv4.address}}"
+    register: out
+    with_items: "{{ groups['file'] }}" 
+  - debug:
+      var:
+      - item.item.item
+      - item.item.stdout_lines
+    with_items: "{{ out.results  }}"

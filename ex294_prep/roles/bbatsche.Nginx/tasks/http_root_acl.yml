@@ -1,0 +1,37 @@
+---
+- name: Set Permissions for HTTP Root
+  file:
+    path: "{{ http_root }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: 02775
+  become: yes
+
+- name: Allow www-data to Write HTTP Root
+  acl:
+    name: "{{ http_root }}"
+    etype: group
+    entity: www-data
+    permissions: rwx
+    state: present
+  become: yes
+
+- name: Add Default ACL for www-data to HTTP Root
+  acl:
+    name: "{{ http_root }}"
+    etype: group
+    entity: www-data
+    permissions: rwx
+    default: yes
+    state: present
+  become: yes
+
+- name: Set ACL Mask for HTTP Root
+  acl:
+    name: "{{ http_root }}"
+    etype: mask
+    permissions: rwx
+    default: yes
+    state: present
+  become: yes

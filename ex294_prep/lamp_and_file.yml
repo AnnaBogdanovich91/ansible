@@ -1,0 +1,87 @@
+---
+- name: copy facts
+  gather_facts: no
+  hosts: all
+  vars:
+  - file_fact:
+    - facts.d/packages.fact
+    - facts.d/services.fact
+  - remote_dir: /etc/ansible/facts.d
+  tasks:
+  - file:
+      path: "{{ remote_dir }}"
+      state:  directory
+#      create: yes
+  - copy:
+      src: "{{ item }}"
+      dest:  "{{ remote_dir }}"
+    loop: "{{ file_fact }}"
+- name: 
+  vars_files: facts.d/allvars.yml
+#  vars:
+#  - fact: "ansible_facts['ansible_local']['packages']['packages']"
+  hosts: all
+  tasks:
+  -  block:
+     - debug:
+        msg: " {{ ansible_facts['ansible_local']['packages']['packages']['smb_package'] }}"
+     - yum:
+         name:
+         - " {{ ansible_facts['ansible_local']['packages']['packages']['smb_package'] }}"
+         - " {{ ansible_facts['ansible_local']['packages']['packages']['ftp_package'] }}"
+         - " {{ ansible_facts['ansible_local']['packages']['packages']['firewall_package'] }}"
+         state: present
+     - service:
+         name: "{{ item | replace(' ', '') }}"
+         enabled: yes
+         state: started
+       with_items:
+         - "{{ansible_facts['ansible_local']['services']['services']['smb_service']}}"
+         - "{{ansible_facts['ansible_local']['services']['services']['ftp_service']}}"
+         - "{{ansible_facts['ansible_local']['services']['services']['firewall_service']}}"
+     - firewalld:
+         service: "{{ item }}"
+         immediate: yes
+         permanent: yes
+         state: enabled
+       loop:
+        - "{{ ansible_facts['ansible_local']['services']['firewall']['smb_service'] }}"
+        - "{{ ansible_facts['ansible_local']['services']['firewall']['ftp_service'] }}"
+     - file:
+        state: directory
+ #      create: yes
+        dest: "{{ ftp_root }}"
+     when:  '"file" in group_names'
+  - block:
+    - debug:
+       msg:  "{{ ansible_facts['ansible_local']['packages']['packages'] }}"
+    - yum:
+       name:
+       - "{{ ansible_facts['ansible_local']['packages']['packages']['web_package'] }}"
+       - "{{ ansible_facts['ansible_local']['packages']['packages']['db_package'] }}"
+       - "{{ ansible_facts['ansible_local']['packages']['packages']['firewall_package'] }}"
+       state: present
+    - service:
+        name: "{{ item | replace(' ', '') }}"
+        enabled: yes
+        state: started
+      with_items:
+       - "{{ ansible_facts['ansible_local']['services']['services']['web_service'] }}"
+#       - "{{ ansible_facts['ansible_local']['services']['services']['db_service'] }}"
+       - "{{ansible_facts['ansible_local']['services']['services']['firewall_service']}}"
+    - firewalld:
+        service: "{{ item }}"
+        immediate: yes
+        permanent: yes
+        state: enabled
+      loop:
+       - "{{ ansible_facts['ansible_local']['services']['firewall']['web_service'] }}"
+       - "{{ ansible_facts['ansible_local']['services']['firewall']['db_service'] }}"
+    - file:
+       state: directory
+       dest: "{{ web_root }}"
+    - copy:
+       content: "Welcome to web server"
+       dest: "{{ web_root }}/index.html"
+    when: '"lamp" in group_names'
+...

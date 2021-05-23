@@ -1,0 +1,13 @@
+---
+- name: gather_facts
+  gather_facts: yes
+  hosts: all
+    
+- name: setup http and https with role
+  gather_facts: no
+  roles:
+  - http-with-dep
+  vars:
+  - http_port: 8080
+  - https_port: 8443
+  hosts: lamp

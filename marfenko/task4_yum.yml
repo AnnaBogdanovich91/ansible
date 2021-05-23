@@ -1,0 +1,26 @@
+---
+- name: Install  http and  curl
+  hosts: webserver
+  tasks:
+  - name: 
+    yum:
+      name:
+      - httpd
+      - curl
+      state: latest
+- name: Update all
+  hosts: database
+  tasks:
+  - name:
+    yum:
+     name: '*'
+     state: latest
+- name: Install group  "FTP Server"
+  hosts: proxy
+  tasks:
+  - name:
+    yum: 
+     name: "@ftp-server"
+     state: present
+...
+

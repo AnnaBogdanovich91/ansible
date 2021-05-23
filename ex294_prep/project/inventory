@@ -1,0 +1,12 @@
+[control]
+localhost
+
+[frontend]
+rhce-client1
+
+[backend]
+rhce-client2
+
+[managed:children]
+frontend
+backend

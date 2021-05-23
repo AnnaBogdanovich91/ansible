@@ -1,0 +1,22 @@
+- name: Setup HTTPS servers
+  hosts:
+  - rhce-client1
+  - rhce-client2
+  - localhost
+  roles: 
+  - role: http-with-dep
+  
+- name: Setup HAProxy
+  hosts: localhost
+  roles:
+    - role: rhtconsulting.haproxy
+      haproxy_applications:
+        - name: ansible-exam
+          domain: exam.example.com
+          expose_https: True
+          redirect_http_to_https: True
+          servers:
+            - name: backend01
+              address: rhce-client1.exam.com
+            - name: backend02
+              address: rhce-client2.exam.com

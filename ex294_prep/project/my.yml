@@ -1,0 +1,5 @@
+- name: test group_vars
+  hosts: managed
+  tasks:
+  - debug:
+      msg: "I am {{ inventory_hostname }} belong to group {{ hostvars[inventory_hostname].group_names  }} and I have a desciption {{ description }}"

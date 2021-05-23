@@ -1,0 +1,14 @@
+# {{ ansible_managed }}
+<VirtualHost *:{{http_port }}>
+  ServerAdmin webmaster@{{ansible_facts['fqdn'] }}
+  ServerName {{ ansible_facts['fqdn'] }}
+  ErrorLog logs/{{ ansible_facts['hostname'] }}-error.log
+  CustomLog logs/{{ ansible_facts['hostname'] }}-common.log common 
+  DocumentRoot /{{ http_folder }}/{{ ansible_facts['hostname'] }}/
+
+  <Directory /{{ http_folder }}/{{ ansible_facts['hostname'] }}>  
+    Options +Indexes +FollowSymlinks  +Includes
+    Order allow,deny  
+    Allow from all
+  </Directory>
+</VirtualHost>

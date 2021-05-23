@@ -1,0 +1,26 @@
+---
+- name: Install package
+  hosts: file
+  become: true
+  tasks:
+  - yum:
+      state: present
+      name: vsftpd
+
+- name: Update package
+  hosts: all
+  become: true
+  tasks:
+  - yum: 
+      state: latest
+      update_only: yes
+      name: vsftpd
+
+- name: Install group of packages
+  hosts: web
+  become: true
+  tasks:
+  -  yum:
+      name: "@Network Servers"
+      state: present
+      

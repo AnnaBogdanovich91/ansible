@@ -1,0 +1,28 @@
+---
+- hosts: localhost
+  remote_user: root
+  roles:
+    - http
+  gather_facts: no
+  connection: local
+  become: no
+  tasks:
+  - name: test http connection
+    uri:
+     url: "http://{{inventory_hostname}}:{{ http_port }}"
+     return_content: true
+     status_code: 200
+    register: this
+  - debug:
+      msg: "http://{{inventory_hostname}}:{{ http_port }} -> {{ this.content }}"
+    failed_when: "'Welcome' not in this.content"
+  - name: test https connection
+    uri:
+      url: "https://{{inventory_hostname}}:{{ https_port }}"
+      return_content: true
+      status_code: 200
+      validate_certs: no
+    register: this
+  - debug:
+      msg: "https://{{inventory_hostname}}:{{ https_port }} -> {{ this.content }}"
+    failed_when: "'Welcome' not in this.content"

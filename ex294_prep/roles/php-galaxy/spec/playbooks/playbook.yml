@@ -1,0 +1,64 @@
+---
+- hosts: all
+
+  vars_files:
+    - ../../defaults/main.yml
+    - ../../vars/main.yml
+
+  vars:
+    php_version: 7.2.20
+    pecl_extensions:
+      - name:    yaml
+        version: 2.0.4
+      - name:    imagick
+        version: 3.4.4
+      - name:    redis
+        version: 5.0.2
+
+  roles:
+    - role: bbatsche.Nginx
+      nginx_configs: "{{ [ 'php-' + domain + '.conf' ] if domain is defined else [] }}"
+
+  post_tasks:
+    - name: Truncate Error Log
+      command: truncate -s0 {{ log_dir }}/error.log
+      become: yes
+
+    # Ansible's service module doesn't play well with Docker, so for testing just manually restart
+    - name: Force Nginx Restart
+      command: service nginx restart warn=no
+      become: yes
+      when: ansible_connection | default('smart') == 'docker'
+
+    - name: Force PHP FPM Restart
+      command: service php{{ php_version }}-fpm restart warn=no
+      become: yes
+      when: ansible_connection | default('smart') == 'docker'
+
+    - block:
+      - name: Create Disabled Function Test
+        copy:
+          content: "<?php shell_exec('pwd');"
+          dest: "{{ http_root }}/{{ domain }}/public/disabled_functions_test.php"
+
+      - name: Create Openbase Dir Test
+        copy:
+          content: "<?php readfile(!empty($_GET['path']) ? $_GET['path'] : '/etc/passwd');"
+          dest: "{{ http_root }}/{{ domain }}/public/open_basedir_test.php"
+
+      - name: Create Session Test
+        copy:
+          content: "<?php session_start(); echo session_status();"
+          dest: "{{ http_root }}/{{ domain }}/public/session_test.php"
+
+      - name: Create Log Test
+        copy:
+          content: "<?php error_log('Test error message');"
+          dest: "{{ http_root }}/{{ domain }}/public/error_test.php"
+      when: domain is defined
+
+  tasks:
+    - import_tasks: ../../tasks/main.yml
+
+  handlers:
+    - import_tasks: ../../handlers/main.yml

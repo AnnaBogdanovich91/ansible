@@ -1,0 +1,9 @@
+---
+- name: Create gzip archive from  /var
+  hosts: localhost
+  gather_facts: no
+  tasks:
+  - archive:
+      path: /var/lib/dnf
+      dest: /home/devops/var_dnf.tar.gz
+      format: gz

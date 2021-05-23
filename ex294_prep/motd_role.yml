@@ -1,0 +1,14 @@
+---
+- name: set motd
+  hosts: all
+  roles: 
+  - role: motd
+    vars:
+    - system_manager: "{{ group_names[0] }}@exam.com"
+ 
+  tasks:
+  - command: "cat /etc/motd"
+    register: stdout
+  - debug:
+      msg: |
+        {{ stdout.stdout_lines }}

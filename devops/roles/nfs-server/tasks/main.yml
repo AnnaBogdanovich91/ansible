@@ -1,0 +1,5 @@
+---
+# tasks file for nfs-server
+- include_tasks: install_nfs.yml
+- include_tasks: configure_export.yml
+

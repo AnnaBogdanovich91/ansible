@@ -1,0 +1,29 @@
+---
+- name: Enable webserver
+  hosts: backend
+  gather_facts: yes
+ 
+- name: HAproxy
+  hosts: control
+  become: true
+  pre_tasks:
+  - name: stop http
+    service:
+      name: httpd
+      state: stopped
+      enabled: no
+  - set_fact:
+      backend: "{{ backend |default([]) + [ {'name': item.ansible_hostname, 'address': item.ansible_default_ipv4.address+':80'} ] }}"
+      delegate_to: localhost
+    with_items: "{{ groups['backend'] | map('extract', hostvars) | list }}"
+    when: item.ansible_default_ipv4 is defined
+  - fail:
+      msg: "No backend hosts are defined or available"
+    when: backend is not defined 
+  - debug:
+      var: backend
+  roles:
+  - role: geerlingguy.haproxy
+    haproxy_backend_servers: "{{ backend }}"
+    haproxy_backend_balance_method: 'roundrobin'
+     

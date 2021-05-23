@@ -1,0 +1,20 @@
+---
+- name: Update FPM RC
+  command: update-rc.d php{{ php_version }}-fpm defaults
+  become: yes
+
+- name: Enable FPM Systemd Service
+  systemd: name=php{{ php_version }}-fpm.service enabled=yes daemon_reload=yes
+  when: ansible_connection | default('smart') != 'docker'
+  become: yes
+
+- name: Restart FPM
+  service: name=php{{ php_version }}-fpm state=restarted
+  when: domain is defined
+  become: yes
+
+- name: Rehash Phpenv
+  phpenv:
+    command: rehash
+    php_version: "{{ php_version }}"
+    phpenv_root: "{{ phpenv_root }}"

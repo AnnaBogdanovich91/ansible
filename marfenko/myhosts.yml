@@ -1,0 +1,48 @@
+---
+- name: gather facts
+  hosts: all
+  gather_facts: yes
+  tasks:
+  - debug:
+      msg: ""
+- name: create myhosts
+  hosts: control
+  gather_facts: no
+  tasks:
+  - debug:
+        msg: "{{ hostvars['rhce-client1'].ansible_facts }}"
+        
+#  - template:
+#      src: myhosts.j2
+#      dest: /tmp/myhosts.txt
+#      mode: '0600'
+#      owner: automation
+#  - sefcontext:
+#      target: /tmp/myhosts.txt
+#      setype: net_conf_t
+#      state: present
+#    notify: restorecon
+  - blockinfile:
+      path: /tmp/hosts.test
+      block: "{{ lookup ('template', 'myhosts.j2' ) }}"
+
+
+  handlers:
+  - name: restorecon
+    command: restorecon -iv /tmp/myhosts.txt
+
+- name: test
+  hosts: control
+  gather_facts: no
+  tasks:
+  - command: "ls -lZ /tmp/myhosts.txt"
+    register: ls_stdout
+#  - command: "cat /tmp/myhosts.txt"
+#    register: cat_stdout
+  - command: "cat  /tmp/hosts.test"
+    register: cat_stdout
+  - debug:
+      msg: |
+        {{ ls_stdout.stdout_lines }}
+        {{ cat_stdout.stdout_lines }}
+...

@@ -1,0 +1,12 @@
+---
+# vars file for http-with-dep
+selinux_policy: targeted
+selinux_state: enforcing
+selinux_fcontexts:
+  - { target: '{{ http_folder }}(/.*)?', setype: httpd_sys_content_t, ftype: 'd' }
+selinux_restore_dirs:
+  - '{{ http_folder }}'
+selinux_ports:
+  - { ports: "{{ http_port }}",  proto: 'tcp', setype:  'http_port_t', state: 'present' }
+  - { ports: "{{ https_port }}",  proto: 'tcp', setype:  'http_port_t', state: 'present' }
+  

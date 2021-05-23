@@ -1,0 +1,89 @@
+---
+# tasks file for http-with-dep  - name: install httpd
+- name: Install Apache
+  yum:
+   name:
+   - httpd
+   - mod_ssl
+   state: latest
+- name: enable and start http
+  service:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  with_items:
+    - httpd
+- name: config http
+  block:
+  - lineinfile:
+      path: "{{ httpd_conf }}"
+      regexp: "^Listen"
+      line: "Listen {{ http_port }}"
+    notify: restart_httpd
+  - name: config https
+    lineinfile:
+      path: "{{ https_conf }}"
+      regexp: "^Listen"
+      line: "Listen {{ https_port }}"
+    notify: restart_httpd
+  - name: Apache  VirtualHosts
+    template:
+      src: "{{ item }}"
+      dest: "{{ httpd_conf_dir }}/{{item}}.vhost.conf"
+      owner: root
+      mode: '0644'
+    with_items:
+    - http_template.j2
+    - https_template.j2
+    notify: restart_httpd
+#- name: Allow Apache to listen on tcp port "{{ http_port }}"
+#  seport:
+#    ports: "{{ item }}"
+#    proto: tcp
+#    setype: http_port_t
+#    state: present
+#  with_items:
+#  - "{{ http_port }}"
+#  - "{{ https_port }}"
+#  notify: restart_httpd
+- name: prepare http files
+  block:
+  - file:
+      state: directory
+      path: "{{ http_folder }}/{{ ansible_facts['hostname'] }}"
+  - template:
+      src: http_index.j2
+      dest: "{{ http_folder }}/{{ ansible_facts['hostname'] }}/index.html"
+#  - name: Allow apache to modify files in  "{{ http_folder }}"
+#    sefcontext:
+#      target: '{{ http_folder }}(/.*)?'
+#      setype: httpd_sys_content_t
+#      state: present
+#  - name: Apply new SELinux file context to filesystem
+#    command: restorecon -irv  "{{ http_folder }}"
+
+- name: Apply SELinux context and catch errors
+  block:
+    - include_role:
+        name: rhel-system-roles.selinux
+  rescue:
+   # Fail if failed for a different reason than selinux_reboot_required.
+    - name: handle errors
+      fail:
+        msg: "role failed"
+      when: not selinux_reboot_required
+    - name: restart managed host
+      shell: sleep 2 && shutdown -r now "Ansible updates triggered"
+      async: 1
+      poll: 0
+      ignore_errors: true
+
+    - name: wait for managed host to come back
+      wait_for_connection:
+        delay: 10
+        timeout: 300
+
+    - name: reapply the role
+      include_role:
+        name: rhel-system-roles.selinux
+

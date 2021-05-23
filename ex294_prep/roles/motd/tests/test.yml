@@ -1,0 +1,11 @@
+---
+- hosts: localhost
+#  remote_user: root
+  roles:
+    - motd
+  tasks:
+  - command: "cat /etc/motd"
+    register: stdout
+  - debug:
+      msg: |
+        {{ stdout.stdout_lines }}

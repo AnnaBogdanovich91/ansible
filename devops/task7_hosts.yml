@@ -1,0 +1,24 @@
+--- 
+- name: Gather facts
+  hosts: all
+  
+- name: create /etc/myhosts
+  become: true
+  hosts: dev
+  gather_facts: no
+  tasks:
+  - template:
+      dest: /etc/myhosts
+      mode: '0644'
+      owner: root
+      group: root
+      src: myhosts.j2
+  - sefcontext:
+      path: /etc/myhosts
+      setype: net_conf_t 
+      state: present
+  - command: restorecon -ivR /etc/myhosts
+  - command: cat /etc/myhosts
+    register: output
+  - debug:
+      var: output.stdout_lines
