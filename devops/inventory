@@ -1,19 +1,21 @@
-[control]
-rhce-control
+#[control]
+#rhce-control
 
 [web]
-rhce-client1
+#rhce-client1
+127.0.0.1
+localhost
 
-[file]
-rhce-client3
+#[file]
+#rhce-client3
 
 
 [dev:children]
 web
 
 [test:children]
-file
+#file
 
-[backend:children]
-web
-file
+#[backend:children]
+#web
+#file

@@ -1,0 +1,160 @@
+---
+- name: gather facts
+  hosts: all
+  tasks:
+    - debug:
+        msg: "Configuration of webservice and related security"
+- name: install and configure web server
+  hosts: tag_Group_lamp
+  vars:
+  - http_port: 80
+  - http_folder: /webfiles
+  - httpd_conf: /etc/httpd/conf/httpd.conf
+  - https_port: 443
+  - httpd_conf_dir: /etc/httpd/conf.d/
+  - https_conf: "{{ httpd_conf_dir }}/ssl.conf"
+  force_handlers: true
+  tasks:
+#  - name: check SElinux enforcing
+#    selinux:
+#      state: enforcing
+#      policy: targeted
+#    register: selinux
+#  - name: reboot if needed
+#    reboot:
+#    when: selinux.reboot_required
+  - name: install httpd
+    yum:
+     name: 
+     - httpd
+#     - firewalld
+     - mod_ssl
+     state: latest
+  - name: Install RHEL packages
+    yum:
+      name:
+      - policycoreutils-python-utils
+      state: latest
+    when: ansible_distribution == "RedHat"
+  - name: Intall Selinux in Amazon
+    yum:
+      name: policycoreutils-python
+      state: latest
+    when: ansible_distribution == "Amazon"
+    
+  - name: enable and start http
+    service:
+      name: "{{ item }}"
+      state: started
+      enabled: true
+    with_items: 
+    - httpd
+ #   - firewalld
+  - name: config http
+    block:
+    - lineinfile:
+        path: "{{ httpd_conf }}"
+        regexp: "^Listen"
+        line: "Listen {{ http_port }}"
+      notify: restart_httpd
+    - name: config https
+      lineinfile:
+        path: "{{ https_conf }}"
+        regexp: "^Listen"
+        line: "Listen {{ https_port }}"
+      notify: restart_httpd
+    - name: Apache  VirtualHosts
+      template:
+        src: "{{ item }}"
+        dest: "{{ httpd_conf_dir }}/{{item}}.vhost.conf"
+        owner: root
+        mode: '0644'
+      with_items:
+      - http_template.j2
+      - https_template.j2
+      notify: restart_httpd
+ 
+  - name: prepare http files
+    block:
+    - file:
+        state: directory
+        path: "{{ http_folder }}/{{ ansible_facts['hostname'] }}"
+    - name: Prepare index.html
+      template:
+        src: http_index.j2
+        dest: "{{ http_folder }}/{{ ansible_facts['hostname'] }}/index.html"
+    - name: Allow apache to modify files in  "{{ http_folder }}"
+      sefcontext:
+        target: '{{ http_folder }}(/.*)?'
+        setype: httpd_sys_content_t
+        state: present
+ #     when: ansible_distribution  == "RedHat"
+      
+    - name: Apply new SELinux file context to filesystem
+      command: restorecon -irv  "{{ http_folder }}"
+ #     when: ansible_distribution  == "RedHat"
+      
+    - name: create symlink to share
+      file:
+          src: "{{ http_folder }}"
+          dest: "/var/www/html/{{ http_folder }}"
+          state: link
+  #- name: add port to the firewall and selinux
+   # block:
+  #  - firewalld:
+  #      port: "{{ item }}"
+  #      state: enabled
+  #      permanent: true
+  #      immediate: true
+  #    with_items:
+  #    - "{{ http_port }}/tcp"
+  #    - "{{ https_port }}/tcp"
+    - name: Allow Apache to listen on tcp port "{{ http_port }}"
+      seport:
+          ports: "{{ item }}"
+          proto: tcp
+          setype: http_port_t
+          state: present
+      with_items:
+      - "{{ http_port }}"
+      - "{{ https_port }}"
+      notify: restart_httpd
+#    when: ansible_distribution == "RedHat"
+  handlers:
+  - name: restart_httpd
+    service:
+      name: httpd
+      state: restarted
+
+- name: Verify HTTP
+  gather_facts: no
+  hosts: tag_Group_lamp
+  connection: local
+  become: no
+  vars:
+  - http_port: 80
+  - http_folder: webfiles
+  - https_port: 443
+  tasks:
+  - name: test http connection
+    uri:
+     url: "http://{{inventory_hostname}}:{{ http_port }}"
+     return_content: true
+     status_code: 200
+    register: this
+  - debug:
+      msg: "http://{{inventory_hostname}}:{{ http_port }} -> {{ this.content }}"
+    failed_when: "'Welcome' not in this.content"
+  - name: test https connection
+    uri:
+      url: "https://{{inventory_hostname}}:{{ https_port }}"
+      return_content: true
+      status_code: 200
+      validate_certs: no
+    register: this
+  - debug:
+      msg: "https://{{inventory_hostname}}:{{ https_port }} -> {{ this.content }}"
+    failed_when: "'Welcome' not in this.content"
+ 
+...
+

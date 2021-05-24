@@ -1,0 +1,58 @@
+---
+- name: install httpd and mod_ssl
+  hosts: 
+  - rhce-client1
+  - rhce-client2
+  vars_files: 
+  -  "facts.d/https_yum.fact"
+  vars:
+  - supported_distributions:
+    - "RedHat"
+    - "CentOS"
+  tasks:
+  - fail:
+      msg: "Host {{ ansible_hostname }}  doesn't meet minimal requirements"
+    when: ansible_facts['distribution'] not in supported_distributions or ansible_facts['distribution_version']  < "8"
+#  - debug:
+#      msg: "{{ ansible_facts['distribution'] }}"
+#  - debug:
+#      msg: "{{ ansible_facts['distribution_version'] }}"
+  - name: install  https
+    yum:
+      name: " {{ item}}"
+      state: latest
+    with_items: "{{ https_packages }}"
+  - name: date from shell
+    shell: "date"
+    register: shell_date
+  - name: create index.html
+    block:
+    - blockinfile:
+        block: |
+                 Welcome to my webserver! <br>
+                 Current date: {{ ansible_date_time['iso8601'] }} <br>
+                 Shell date: {{ shell_date.stdout }}  <br>
+        path: /var/www/html/index.html
+        marker: "<!-- {mark} ANSIBLE MANAGED BLOCK -->"
+      notify:
+      - restart_web_server
+    rescue:
+    - debug:
+#        msg: "Unable to copy content into the /var/www/html/index.html"
+        msg: "{{ ansible_failed_result.msg }}"
+  - name: firewall
+    firewalld:
+      service: "{{ item }}"
+      immediate: yes
+      permanent: yes
+      state: enabled
+    loop:
+    - http
+    - https
+  handlers:
+  - name: restart_web_server
+    service:
+       name: httpd
+       state: restarted
+...
+

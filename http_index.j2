@@ -1,0 +1,12 @@
+Welcome to server {{ ansible_facts['fqdn'] }}. Sharing {{ http_folder }} over ports {{ http_port }} and {{ https_port }} 
+
+{% for node in groups['all'] %}
+  {% if hostvars[node]['ansible_facts']['distribution'] is defined %}
+    <br>  OS on {{ node }} is {{ hostvars[node]['ansible_facts']['distribution'] }} {{ hostvars[node]['ansible_facts']['distribution_version'] }}
+    <br>  Memory on {{ node }} is {{ hostvars[node]['ansible_facts']['memory_mb']['real']['total'] }}
+  {% else %}
+    <br> Node {{ node }} doesn't have facts properly defined
+  {% endif %}
+    <br>
+
+{% endfor %}
