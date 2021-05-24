@@ -249,3 +249,12 @@ nano aws_playbook.yml
 git add .
 git commit -m 'test AWS'
 git push
+cd aws_ansible/
+nano aws_playbook.yml 
+cd
+git add .
+git commit -a "Selinux commented :
+"
+git commit -a "Selinux commented"
+git commit -am "Selinux commented"
+git push
