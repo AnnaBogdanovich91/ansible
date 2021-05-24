@@ -1,0 +1,17 @@
+# {{ ansible_managed }}
+<VirtualHost *:{{https_port }}>
+  ServerAdmin webmaster@{{ansible_facts['fqdn'] }}
+  ServerName {{ ansible_facts['fqdn'] }}
+  ErrorLog logs/{{ ansible_facts['hostname'] }}-error.log
+  CustomLog logs/{{ ansible_facts['hostname'] }}-common.log common 
+  DocumentRoot /var/www/html/{{ http_folder }}/{{ ansible_facts['hostname'] }}/
+  SSLEngine on
+  SSLCertificateFile /etc/pki/tls/certs/localhost.crt
+  SSLCertificateKeyFile /etc/pki/tls/private/localhost.key
+
+  <Directory /var/www/html/{{ http_folder }}/{{ ansible_facts['hostname'] }}>  
+    Options +Indexes +FollowSymlinks  +Includes
+    Order allow,deny  
+    Allow from all
+  </Directory>
+</VirtualHost>
