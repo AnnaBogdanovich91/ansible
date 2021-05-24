@@ -16,11 +16,11 @@
      - httpd
      - mod_ssl
      state: latest
-  - name: Intall Selinux in Amazon
-    yum:
-      name: policycoreutils-python
-      state: latest
-    when: ansible_distribution == "Amazon"
+#  - name: Intall Selinux in Amazon
+#    yum:
+#      name: policycoreutils-python
+#      state: latest
+#    when: ansible_distribution == "Amazon"
     
   - name: enable and start http
     service:
@@ -63,30 +63,30 @@
       template:
         src: http_index.j2
         dest: "{{ http_folder }}/{{ ansible_facts['hostname'] }}/index.html"
-    - name: Allow apache to modify files in  "{{ http_folder }}"
-      sefcontext:
-        target: '{{ http_folder }}(/.*)?'
-        setype: httpd_sys_content_t
-        state: present
+#    - name: Allow apache to modify files in  "{{ http_folder }}"
+#      sefcontext:
+#        target: '{{ http_folder }}(/.*)?'
+#        setype: httpd_sys_content_t
+#        state: present
       
-    - name: Apply new SELinux file context to filesystem
-      command: restorecon -irv  "{{ http_folder }}"
+#   - name: Apply new SELinux file context to filesystem
+#      command: restorecon -irv  "{{ http_folder }}"
       
     - name: create symlink to share
       file:
           src: "{{ http_folder }}"
           dest: "/var/www/html/{{ http_folder }}"
           state: link
-    - name: Allow Apache to listen on tcp port "{{ http_port }}"
-      seport:
-          ports: "{{ item }}"
-          proto: tcp
-          setype: http_port_t
-          state: present
-      with_items:
-      - "{{ http_port }}"
-      - "{{ https_port }}"
-      notify: restart_httpd
+#    - name: Allow Apache to listen on tcp port "{{ http_port }}"
+#      seport:
+#         ports: "{{ item }}"
+#          proto: tcp
+#          setype: http_port_t
+#          state: present
+#      with_items:
+#      - "{{ http_port }}"
+#      - "{{ https_port }}"
+#      notify: restart_httpd
   handlers:
   - name: restart_httpd
     service:

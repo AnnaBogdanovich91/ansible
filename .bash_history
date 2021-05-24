@@ -245,3 +245,7 @@ git push add gitrepo "https://github.com/AnnaBogdanovich91"
 git remote add gitrepo "https://github.com/AnnaBogdanovich91/ansible/"
 git push gitrepo
  git push --set-upstream gitrepo master
+nano aws_playbook.yml 
+git add .
+git commit -m 'test AWS'
+git push
