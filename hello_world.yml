@@ -1,0 +1,10 @@
+- hosts: localhost
+  gather_facts: no
+  tasks:
+  - copy:
+      content: "Hello World!"
+      dest: /tmp/helloworld
+  - command: cat /tmp/helloworld
+    register: out
+  - debug:
+      var: out.stdout_lines
