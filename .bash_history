@@ -222,3 +222,26 @@ aws opsworks register --use-instance-profile --infrastructure-class ec2 --region
 aws opsworks register --use-instance-profile --infrastructure-class ec2 --region us-east-2 --stack-id cf8f43a8-93aa-4715-9be1-e9eb2f0bffaa --ssh-username ansible --ssh-private-key /home/ansible/.ssh/id_rsa i-0ac5064f320b59f44
 aws opsworks register --use-instance-profile --infrastructure-class ec2 --region us-east-2 --stack-id cf8f43a8-93aa-4715-9be1-e9eb2f0bffaa --ssh-username ansible --ssh-private-key /home/ansible/.ssh/id_rsa i-0bbe6e259de97f514
 exit
+ls
+nano http_playbook.yml 
+mv aws_playbook.yml 
+mv http_playbook.yml aws_playbook.yml 
+ls
+ls -l
+git init
+ls -l
+ls -la
+git add *
+git commit -m "AWS http"
+ git config --global user.email annalgtn@yandex.ru
+ git config --global user.name Anna
+git commit -m "AWS http"
+git push
+git push add gitrepo https://github.com/AnnaBogdanovich91/ansible
+git push add gitrepo https://github.com/AnnaBogdanovich91/ansible/
+git push add gitrepo "https://github.com/AnnaBogdanovich91/ansible/"
+git push add gitrepo "https://github.com/AnnaBogdanovich91/"
+git push add gitrepo "https://github.com/AnnaBogdanovich91"
+git remote add gitrepo "https://github.com/AnnaBogdanovich91/ansible/"
+git push gitrepo
+ git push --set-upstream gitrepo master
